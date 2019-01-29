@@ -67,12 +67,9 @@ $(name): $(obj) $(LIBCBOR)
 uECC.o: ./crypto/micro-ecc/uECC.c
 	$(CC) -c -o $@ $^ -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(ecc_platform) -I./crypto/micro-ecc/
 
-env2:
-	virtualenv --python=python2.7 env2
-	env2/bin/pip install --upgrade -r tools/requirements.txt
-
 env3:
 	python3 -m venv env3
+	env3/bin/pip install --upgrade pip
 	env3/bin/pip install --upgrade -r tools/requirements.txt
 	env3/bin/pip install --upgrade black
 
@@ -80,11 +77,19 @@ env3:
 black: env3
 	env3/bin/black --skip-string-normalization tools/
 
-wink2: env2
-	env2/bin/python tools/solotool.py solo --wink
-
 wink3: env3
 	env3/bin/python tools/solotool.py solo --wink
+
+DOCKER_IMAGE := "solokeys/solo-firmware:latest"
+docker-build:
+	docker build -t $(DOCKER_IMAGE) .
+	$(eval CID=$(shell docker create $(DOCKER_IMAGE)))
+	docker cp $(CID):/solo.elf /tmp
+	docker cp $(CID):/solo.hex /tmp
+	docker cp $(CID):/bootloader.elf /tmp
+	docker cp $(CID):/bootloader.hex /tmp
+	docker cp $(CID):/all.hex /tmp
+	docker rm $(CID)
 
 fido2-test: env3
 	env3/bin/python tools/ctap_test.py
@@ -101,7 +106,7 @@ test: main cppcheck
 
 clean:
 	rm -f *.o main.exe main $(obj)
-	rm -rf env2 env3
+	rm -rf env3
 	for f in crypto/tiny-AES-c/Makefile tinycbor/Makefile ; do \
 	    if [ -f "$$f" ]; then \
 	    	(cd `dirname $$f` ; git checkout -- .) ;\
