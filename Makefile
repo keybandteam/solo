@@ -83,13 +83,8 @@ wink3: env3
 DOCKER_IMAGE := "solokeys/solo-firmware:latest"
 docker-build:
 	docker build -t $(DOCKER_IMAGE) .
-	$(eval CID=$(shell docker create $(DOCKER_IMAGE)))
-	docker cp $(CID):/solo.elf /tmp
-	docker cp $(CID):/solo.hex /tmp
-	docker cp $(CID):/bootloader.elf /tmp
-	docker cp $(CID):/bootloader.hex /tmp
-	docker cp $(CID):/all.hex /tmp
-	docker rm $(CID)
+	# docker build --no-cache -t $(DOCKER_IMAGE) .
+	docker run -rm -v$(PWD):/out $(DOCKER_IMAGE)
 
 fido2-test: env3
 	env3/bin/python tools/ctap_test.py
